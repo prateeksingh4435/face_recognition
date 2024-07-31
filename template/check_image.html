@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Image Match</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #cameraContainer {
+            text-align: center;
+            position: relative;
+        }
+        #capturedImage {
+            display: none;
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        #loadingSpinner {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center mb-5 mt-5">Check Image Match</h1>
+    <div class="d-flex justify-content-center">
+        <div id="cameraContainer">
+            <div id="camera"></div>
+            <img id="capturedImage" />
+            <div id="loadingSpinner" class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Checking image, please wait...</p>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="takeSnapshot()">Capture Image</button><br><br>
+            <input type="hidden" id="image">
+            <button type="button" class="btn btn-success" onclick="checkMatch()">Check Match</button>
+        </div>
+
+        <script>
+            function getCsrfToken() {
+                const name = 'csrftoken';
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            }
+
+            $.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                        xhr.setRequestHeader("X-CSRFToken", getCsrfToken());
+                    }
+                }
+            });
+
+            Webcam.set({
+                width: 320,
+                height: 240,
+                image_format: 'jpeg',
+                jpeg_quality: 90
+            });
+            Webcam.attach('#camera');
+
+            function takeSnapshot() {
+                Webcam.snap(function (data_uri) {
+                    var imgElement = document.getElementById('capturedImage');
+                    imgElement.src = data_uri;
+                    imgElement.style.display = 'block';
+                    document.getElementById('camera').style.display = 'none';
+                    document.getElementById('image').value = data_uri;
+                });
+            }
+
+            function checkMatch() {
+                var image = $('#image').val();
+                if (!image) {
+                    alert('Please capture an image first.');
+                    return;
+                }
+
+                document.getElementById('loadingSpinner').style.display = 'block';
+
+                var formData = new FormData();
+                var blob = dataURItoBlob(image);
+                console.log("Sending Blob:", blob);
+                formData.append('image', blob);
+
+                $.ajax({
+                    url: '/api/checkmatch/',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                        console.log("Server Response:", response);
+                        alert(response.message);
+                    },
+                    error: function (response) {
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                        console.error("Error Response:", response);
+                        alert('Error: ' + (response.responseJSON ? response.responseJSON.error : 'Unknown error'));
+                    }
+                });
+            }
+
+            function dataURItoBlob(dataURI) {
+                var byteString = atob(dataURI.split(',')[1]);
+                var ab = new ArrayBuffer(byteString.length);
+                var ia = new Uint8Array(ab);
+                for (var i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+                return new Blob([ab], { type: 'image/jpeg' });
+            }
+        </script>
+    </div>
+</body>
+</html>

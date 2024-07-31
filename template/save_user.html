@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Save User Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.min.js"></script>
+    <style>
+        #cameraContainer {
+            text-align: center;
+            position: relative;
+        }
+        #capturedImage {
+            display: none;
+            max-width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center mt-5 mb-5">Save User Data</h1>
+    <div class="container d-flex justify-content-center">
+        <form id="saveForm" class="form" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label>
+                <input type="text" id="name" name="name" class="form-control" required>
+            </div>
+            <div id="cameraContainer" class="mb-3">
+              
+                <div id="camera"></div>
+             
+                <img id="capturedImage" />
+            </div>
+            <button type="button" class="btn btn-primary" onclick="takeSnapshot()">Capture Image</button><br><br>
+            <input type="hidden" name="image" id="image">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-success ms-2"><a href="{% url 'check_image_view' %}" class="text-white">Verify</a></button>
+        </form>
+
+        <script>
+           
+            function getCsrfToken() {
+                const name = 'csrftoken';
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            }
+
+            
+            $.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                        xhr.setRequestHeader("X-CSRFToken", getCsrfToken());
+                    }
+                }
+            });
+
+            
+            Webcam.set({
+                width: 320,
+                height: 240,
+                image_format: 'jpeg',
+                jpeg_quality: 90
+            });
+
+          
+            Webcam.attach('#camera');
+
+            function base64ToBlob(base64, mime) {
+                const sliceSize = 512;
+                const byteCharacters = atob(base64);
+                const byteArrays = [];
+                for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                    const slice = byteCharacters.slice(offset, offset + sliceSize);
+                    const byteNumbers = new Array(slice.length);
+                    for (let i = 0; i < slice.length; i++) {
+                        byteNumbers[i] = slice.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    byteArrays.push(byteArray);
+                }
+                return new Blob(byteArrays, { type: mime });
+            }
+
+            function takeSnapshot() {
+                console.log("Attempting to capture image...");
+                Webcam.snap(function (data_uri) {
+                    console.log("Image captured");
+
+                   
+                    const capturedImage = document.getElementById('capturedImage');
+                    capturedImage.src = data_uri;
+                    capturedImage.style.display = 'block'; 
+
+                  
+                    $('#camera').hide();
+
+                    
+                    const base64Data = data_uri.split(',')[1];
+                    const blob = base64ToBlob(base64Data, 'image/jpeg');
+                    const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+
+                 
+                    const formData = new FormData();
+                    formData.append('name', $('#name').val());
+                    formData.append('image', file);
+
+                   
+                    $('#saveForm').off('submit').on('submit', function (e) {
+                        e.preventDefault();
+
+                        $.ajax({
+                            url: '/api/save/',
+                            type: 'POST',
+                            data: formData,
+                            processData: false,  
+                            contentType: false,  
+                            success: function (response) {
+                                alert(response.message);
+                            },
+                            error: function (jqXHR) {
+                                var errorMsg = 'An error occurred';
+                                try {
+                                    var responseJSON = JSON.parse(jqXHR.responseText);
+                                    errorMsg = responseJSON.error || 'Unknown error';
+                                } catch (e) {
+                                    console.error('Error parsing response:', e);
+                                }
+                                alert('Error: ' + errorMsg);
+                            }
+                        });
+                    });
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>
