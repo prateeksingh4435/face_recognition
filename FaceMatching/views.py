@@ -8,7 +8,6 @@ from .serializers import UserDataSerializer
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
-
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
@@ -19,10 +18,9 @@ def save_user_data(request):
         serializer.save()
         return Response({'message': 'User data saved successfully'})
     except Exception as e:
+        logger.error(f"Error saving user data: {str(e)}")
         return Response({'error': str(e)}, status=500)
-    
-    
-    
+
 @csrf_exempt
 @api_view(['POST'])
 def check_image_match(request):
@@ -32,17 +30,19 @@ def check_image_match(request):
 
         uploaded_image = request.FILES['image']
         unknown_image = face_recognition.load_image_file(uploaded_image)
-      
         
+        # Log image shape and size to ensure it's loaded correctly
+        logger.debug(f"Uploaded image shape: {unknown_image.shape}")
+
         unknown_encodings = face_recognition.face_encodings(unknown_image)
-        
-       
-        
+        logger.debug(f"Found {len(unknown_encodings)} face(s) in the uploaded image")
+
         if len(unknown_encodings) == 0:
             return Response({'message': 'No faces found in the uploaded image'}, status=400)
-        
+
         unknown_encoding = unknown_encodings[0]
-        print(unknown_encoding)
+        logger.debug(f"Unknown encoding: {unknown_encoding}")
+
         user_images_path = os.path.join(settings.MEDIA_ROOT, 'user_images')
         if not os.path.exists(user_images_path):
             return Response({'error': 'User images directory not found'}, status=404)
@@ -55,7 +55,8 @@ def check_image_match(request):
 
             known_image = face_recognition.load_image_file(user_image_path)
             known_encodings = face_recognition.face_encodings(known_image)
-            
+            logger.debug(f"Found {len(known_encodings)} face(s) in the known image {image_name}")
+
             if len(known_encodings) == 0:
                 continue
 
@@ -63,17 +64,18 @@ def check_image_match(request):
             if face_recognition.compare_faces([known_encoding], unknown_encoding)[0]:
                 matched = True
                 break
-        
+
         logger.debug(f"Matched: {matched}")
 
         if matched:
-            return Response({'message': 'Image matched', })
+            return Response({'message': 'Image matched'})
         else:
             return Response({'message': 'Image not matched'})
 
     except Exception as e:
         logger.error(f"Error in image matching: {str(e)}")
         return Response({'error': 'Internal server error'}, status=500)
+
 def save_user_view(request):
     return render(request, 'save_user.html')
 
