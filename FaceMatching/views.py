@@ -32,12 +32,17 @@ def check_image_match(request):
 
         uploaded_image = request.FILES['image']
         unknown_image = face_recognition.load_image_file(uploaded_image)
+      
         
         unknown_encodings = face_recognition.face_encodings(unknown_image)
+        
+       
+        
         if len(unknown_encodings) == 0:
             return Response({'message': 'No faces found in the uploaded image'}, status=400)
         
         unknown_encoding = unknown_encodings[0]
+        print(unknown_encoding)
         user_images_path = os.path.join(settings.MEDIA_ROOT, 'user_images')
         if not os.path.exists(user_images_path):
             return Response({'error': 'User images directory not found'}, status=404)
@@ -62,7 +67,7 @@ def check_image_match(request):
         logger.debug(f"Matched: {matched}")
 
         if matched:
-            return Response({'message': 'Image matched'})
+            return Response({'message': 'Image matched', })
         else:
             return Response({'message': 'Image not matched'})
 

@@ -101,7 +101,7 @@
                     error: function (response) {
                         document.getElementById('loadingSpinner').style.display = 'none';
                         console.error("Error Response:", response);
-                        alert('Error: ' + (response.message ? response.message : 'Internal server error'));
+                        alert('Error: ' + (response.responseJSON.message ? response.responseJSON.message : 'Internal server error'));
                     }
                 });
             }
