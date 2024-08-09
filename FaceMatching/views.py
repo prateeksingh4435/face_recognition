@@ -70,11 +70,11 @@ def check_image_match(request):
         known_encoding = known_encodings[0]
         if face_recognition.compare_faces([known_encoding], unknown_encoding)[0]:
             matched = True
-            matched_image_id = user_data.id
+            matched_image_id = user_data.empid
             break
 
     if matched:
-        return JsonResponse({'Employee_id': matched_image_id })
+        return JsonResponse({'Employee_id':matched_image_id})
     else:
         return JsonResponse({'message': 'Image not matched'})
 
