@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import traceback
+from .models import UserData
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +45,14 @@ def check_image_match(request):
         return JsonResponse({'message': 'No faces found in the uploaded image'}, status=400)
 
     unknown_encoding = unknown_encodings[0]
-    user_images_path = os.path.join(settings.MEDIA_ROOT, 'user_images')
-
-    if not os.path.exists(user_images_path):
-        return JsonResponse({'error': 'User images directory not found'}, status=404)
+    matched_image_id = None
+    
+    user_data_list = UserData.objects.all()
+    
 
     matched = False
-    for image_name in os.listdir(user_images_path):
-        user_image_path = os.path.join(user_images_path, image_name)
+    for user_data in user_data_list:
+        user_image_path = user_data.image.path
         if not os.path.isfile(user_image_path):
             continue
 
@@ -69,10 +70,11 @@ def check_image_match(request):
         known_encoding = known_encodings[0]
         if face_recognition.compare_faces([known_encoding], unknown_encoding)[0]:
             matched = True
+            matched_image_id = user_data.id
             break
 
     if matched:
-        return JsonResponse({'message': 'Image matched'})
+        return JsonResponse({'Employee_id': matched_image_id })
     else:
         return JsonResponse({'message': 'Image not matched'})
 

@@ -11,5 +11,5 @@ class UserData(models.Model):
     image = models.ImageField(upload_to='user_images/')
 
     def __str__(self):
-        return self.name
+        return str(self.id)
 
