@@ -141,7 +141,7 @@ def check_image_match(request):
         return JsonResponse({"success": False,'message': 'No faces found in the uploaded image'}, status=200)
 
     unknown_encoding = unknown_encodings[0]
-    print(unknown_encoding)
+
     matched_image_id = None
     matched = False
 
